@@ -1,3 +1,5 @@
+import math
+
 from collections import namedtuple
 from fractions import gcd as calculate_gcd
 
@@ -14,6 +16,35 @@ for line in open("day10.input"):
 # #####
 # ....#
 # ...##
+# """.splitlines()
+
+# MAP = """.#....#####...#..
+# ##...##.#####..##
+# ##...#...#.#####.
+# ..#.....#...###..
+# ..#.#.....#....##
+# """.splitlines()
+
+# MAP = """.#..##.###...#######
+# ##.############..##.
+# .#.######.########.#
+# .###.#######.####.#.
+# #####.##.#.##.###.##
+# ..#####..#.#########
+# ####################
+# #.####....###.#.#.##
+# ##.#################
+# #####.##.###..####..
+# ..######..##.#######
+# ####.##.####...##..#
+# .#####..#.######.###
+# ##...#.##########...
+# #.##########.#######
+# .####.#.###.###.#.##
+# ....##.##.###..#####
+# .#.#.###########.###
+# #.#.#.#####.####.###
+# ###.##.####.##.#..##
 # """.splitlines()
 
 W = len(MAP[0])
@@ -45,7 +76,7 @@ def slopes(pos, m, w, h):
 
 	return res
 
-def num_detected(pos, m, w, h):
+def get_detected(pos, m, w, h):
 	detected = set()
 	slopes_seen = set()
 	for slope in slopes(pos, m, w, h):
@@ -60,8 +91,7 @@ def num_detected(pos, m, w, h):
 					detected.add((new_col, new_row))
 					break # next slope
 
-	# print sorted(detected)
-	return len(detected)
+	return detected
 
 
 max_num_detected = 0
@@ -70,7 +100,7 @@ for col in range(W):
 	for row in range(H):
 		if MAP[row][col] == "#":
 			# print row, col
-			n = num_detected(Position(row, col), MAP, W, H)
+			n = len(get_detected(Position(row, col), MAP, W, H))
 			# print
 			DETECTED[row][col] = str(n)
 			if n > max_num_detected:
@@ -80,3 +110,61 @@ for col in range(W):
 # print_map(MAP)
 print max_num_detected
 print_map(DETECTED)
+print best_pos
+
+detected = get_detected(best_pos, MAP, W, H)
+# print detected
+
+def angle(d, origin):
+	if d[0] < origin.col:
+		# To the left of the vertical line.
+		if d[1] < origin.row:
+			# In the top-left quadrant.
+			y = origin.row - d[1]
+			x = origin.col - d[0]
+			phi = 2 * math.pi - math.atan(float(x)/y)
+			# print d, phi
+
+		elif d[1] == origin.row:
+			phi = (3/2) * math.pi
+			# print d, phi
+
+		elif d[1] > origin.row:
+			# In the bottom-left quadrant.
+			y = d[1] - origin.row
+			x = origin.col - d[0]
+			phi = math.pi + math.atan(float(x)/y)
+			# print d, phi
+
+	elif d[0] == origin.col:
+		if d[1] < origin.row:
+			phi = 0.0
+			# print d, phi
+		elif d[1] > origin.row:
+			phi = math.pi
+		else:
+			print "error"
+
+	elif d[0] > origin.col:
+		if d[1] < origin.row:
+			# In the top-right quadrant.
+			y = origin.row - d[1]
+			x = d[0] - origin.col
+			phi = math.atan(float(x)/y)
+			# print d, phi
+
+		elif d[1] == origin.row:
+			phi = math.pi / 2
+			# print d, phi
+
+		elif d[1] > origin.row:
+			# In the bottom-right quadrant.
+			y = d[1] - origin.row
+			x = d[0] - origin.col
+			phi = math.pi - math.atan(float(x)/y)
+			# print d, phi
+
+	return phi
+
+print sorted(detected, key=lambda d: angle(d, best_pos))
+print sorted(detected, key=lambda d: angle(d, best_pos))[199]
