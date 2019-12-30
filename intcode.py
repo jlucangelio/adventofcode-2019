@@ -125,43 +125,49 @@ def execute(program, input_values):
     return outputs
 
 
-def execute_until_output(name, program, starting_pc, input_values):
+
+def execute_until_output(name, program, starting_pc, input_values, starting_rel_base):
     memory = copy.copy(program)
     cur_input_index = 0
+    rel_base = starting_rel_base
     outputs = []
-
-    print name
 
     pc = starting_pc
     while (memory[pc] != 99):
         v = str(memory[pc])
         opcode = int(v[-2:])
 
-        imm_1 = False
-        imm_2 = False
-        imm_3 = False
+        opmode_1 = POS
+        opmode_2 = POS
+        opmode_3 = POS
 
         if len(v) > 2:
-            imm_1 = v[-3] == "1"
+            opmode_1 = int(v[-3])
         if len(v) > 3:
-            imm_2 = v[-4] == "1"
+            opmode_2 = int(v[-4])
         if len(v) > 4:
-            imm_3 = v[-5] == "1"
+            opmode_3 = int(v[-5])
 
         param1 = memory[pc+1]
-        if imm_1 or opcode == 3:
-            # "input" always take a position parameter.
-            op1 = param1
+
+        if opcode == 3:
+            if opmode_1 == IMM:
+                print "error, input instruction opmode IMM"
+            op1 = calculate_addr(param1, opmode_1, rel_base)
         else:
-            op1 = memory[param1]
+            op1 = read_param(memory, param1, opmode_1, rel_base)
 
         if opcode == 1 or opcode == 2 or opcode == 5 or opcode == 6 or opcode == 7 or opcode == 8:
             param2 = memory[pc+2]
-            op2 = read_param(memory, param2, imm_2)
+            op2 = read_param(memory, param2, opmode_2, rel_base)
 
         if opcode == 1 or opcode == 2 or opcode == 7 or opcode == 8:
-            # Third operand is the destination operand, always in position mode.
-            dest = memory[pc+3]
+            # Third operand is the destination operand, always in position/relative mode.
+            if opmode_3 == IMM:
+                print "error, destination operand specified IMM"
+
+            param3 = memory[pc+3]
+            dest = calculate_addr(param3, opmode_3, rel_base)
 
         # Instructions
         if opcode == 1:
@@ -183,7 +189,7 @@ def execute_until_output(name, program, starting_pc, input_values):
             # output
             output = op1
             print "[", pc, "]", output, "->"
-            return output, memory, pc + 2
+            return output, memory, pc + 2, rel_base
 
         elif opcode == 5:
             # jump-if-true
@@ -213,9 +219,13 @@ def execute_until_output(name, program, starting_pc, input_values):
                 memory[dest] = 0
             pc += 4
 
+        elif opcode == 9:
+            rel_base += op1
+            pc += 2
+
         else:
-            print "invalid opcode", opcode
+            print "[", pc, "]", "invalid opcode", opcode
             break
 
-    # print "halt"
-    return None, memory, pc
+    print "halt"
+    return None, memory, pc, rel_base
